@@ -17,6 +17,8 @@ int readsuccess;
 byte readcard[4];
 char str[32] = "";
 String StrUID;
+
+//method setup koneksi
 void setup() {
    Serial.begin(9600);
    SPI.begin();       // Init SPI bus
@@ -36,6 +38,7 @@ void setup() {
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
 }
 
+//method ambil data UID dari kartu atau tag keychain
 int getid() {  
   if(!mfrc522.PICC_IsNewCardPresent()) {
     return 0;
@@ -43,20 +46,20 @@ int getid() {
   if(!mfrc522.PICC_ReadCardSerial()) {
     return 0;
   }
- 
   
   Serial.print("THE UID OF THE SCANNED CARD IS : ");
   
   for(int i=0;i<4;i++){
     readcard[i]=mfrc522.uid.uidByte[i]; //storing the UID of the tag in readcard
     array_to_string(readcard, 4, str);
-    StrUID = str;
+    StrUID = str; //menyimpan data UID yang sudah diubah ke string pada variabel StrUID
   }
   Serial.println(StrUID);
   mfrc522.PICC_HaltA();
   return 1;
 }
 
+//method ubah array byte jadi string
 void array_to_string(byte array[], unsigned int len, char buffer[]) {
     for (unsigned int i = 0; i < len; i++)
     {
@@ -68,6 +71,7 @@ void array_to_string(byte array[], unsigned int len, char buffer[]) {
     buffer[len*2] = '\0';
 }
 
+//method mengirim data UID ke firebase
 void kirim(){
   readsuccess = getid();
     readsuccess;
@@ -81,6 +85,7 @@ void kirim(){
   delay(100);
 }
 
+//method loop
 void loop() {
     
     delay(100);
