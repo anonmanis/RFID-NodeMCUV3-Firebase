@@ -2,15 +2,21 @@
 #include <MFRC522.h>
 #include <ESP8266WiFi.h>
 #include <FirebaseArduino.h>
+#include <ArduinoJson.h>
+#include <FirebaseObject.h>
 
 #define SS_PIN D4
 #define RST_PIN D2
-#define FIREBASE_HOST "HOST FIREBASE" 
-#define FIREBASE_AUTH "TOKEN"
+#define FIREBASE_HOST "presensiperkuliahan.firebaseio.com" 
+#define FIREBASE_AUTH "GkbEpuP0EAElc49X2Saw2ojM08w9eDc3SEAkdMzI"
 #define WIFI_SSID "HYP_Spot"
 #define WIFI_PASSWORD "rumahcipageran"
 
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Instance of the class
+int readsuccess;
+byte readcard[4];
+char str[32] = "";
+String StrUID;
 void setup() {
    Serial.begin(9600);
    SPI.begin();       // Init SPI bus
@@ -30,25 +36,43 @@ void setup() {
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
 }
 
-String Cardid() {
-  if ( mfrc522.PICC_IsNewCardPresent())
+int getid() {  
+  if(!mfrc522.PICC_IsNewCardPresent()) {
+    return 0;
+  }
+  if(!mfrc522.PICC_ReadCardSerial()) {
+    return 0;
+  }
+ 
+  
+  Serial.print("THE UID OF THE SCANNED CARD IS : ");
+  
+  for(int i=0;i<4;i++){
+    readcard[i]=mfrc522.uid.uidByte[i]; //storing the UID of the tag in readcard
+    array_to_string(readcard, 4, str);
+    StrUID = str;
+  }
+  Serial.println(StrUID);
+  mfrc522.PICC_HaltA();
+  return 1;
+}
+
+void array_to_string(byte array[], unsigned int len, char buffer[]) {
+    for (unsigned int i = 0; i < len; i++)
     {
-        if ( mfrc522.PICC_ReadCardSerial())
-        {
-           Serial.print("Tag UID:");
-           for (byte i = 0; i < mfrc522.uid.size; i++) {
-                  Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
-                  Serial.print(mfrc522.uid.uidByte[i], HEX);
-            }
-         
-            Serial.println();
-            mfrc522.PICC_HaltA();
-        }
+        byte nib1 = (array[i] >> 4) & 0x0F;
+        byte nib2 = (array[i] >> 0) & 0x0F;
+        buffer[i*2+0] = nib1  < 0xA ? '0' + nib1  : 'A' + nib1  - 0xA;
+        buffer[i*2+1] = nib2  < 0xA ? '0' + nib2  : 'A' + nib2  - 0xA;
     }
+    buffer[len*2] = '\0';
 }
 
 void kirim(){
-  Firebase.setString("RFID_MHS/1174043/RFID", Cardid()); // send to Firebase
+  readsuccess = getid();
+    readsuccess;
+  
+  Firebase.setString("RFID", StrUID); // send to Firebase
   if (Firebase.failed()) { //if error/failed 
     Serial.print("kirim ke firebase failed:"); // print to serial 
     Serial.println(Firebase.error());  
@@ -58,13 +82,8 @@ void kirim(){
 }
 
 void loop() {
-    if ( ! mfrc522.PICC_IsNewCardPresent())
-    {
-        return;
-    }
-    // Select one of the cards
-    if ( ! mfrc522.PICC_ReadCardSerial())
-        return;
+    
+    delay(100);
 
     kirim();
 }
