@@ -7,8 +7,8 @@
 
 #define SS_PIN D4
 #define RST_PIN D2
-#define FIREBASE_HOST "presensiperkuliahan.firebaseio.com" 
-#define FIREBASE_AUTH "GkbEpuP0EAElc49X2Saw2ojM08w9eDc3SEAkdMzI"
+#define FIREBASE_HOST "firebase hosy" 
+#define FIREBASE_AUTH "firebase token / database secret"
 #define WIFI_SSID "HYP_Spot"
 #define WIFI_PASSWORD "rumahcipageran"
 
