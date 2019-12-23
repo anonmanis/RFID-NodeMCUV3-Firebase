@@ -4,19 +4,25 @@
 #include <FirebaseArduino.h>
 #include <ArduinoJson.h>
 #include <FirebaseObject.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 #define SS_PIN D4
 #define RST_PIN D2
-#define FIREBASE_HOST "firebase hosy" 
-#define FIREBASE_AUTH "firebase token / database secret"
-#define WIFI_SSID "HYP_Spot"
-#define WIFI_PASSWORD "rumahcipageran"
+#define FIREBASE_HOST "presensiperkuliahan.firebaseio.com" 
+#define FIREBASE_AUTH "GkbEpuP0EAElc49X2Saw2ojM08w9eDc3SEAkdMzI"
+#define WIFI_SSID "anonmanis's Phone"
+#define WIFI_PASSWORD "Irvan12345"
 
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Instance of the class
 int readsuccess;
 byte readcard[4];
 char str[32] = "";
 String StrUID;
+boolean test;
+//const long utcOffsetInSeconds = 25200;
+WiFiUDP ntpUDP;
+  NTPClient timeClient(ntpUDP, "pool.ntp.org", 25200,60000);
 
 //method setup koneksi
 void setup() {
@@ -34,6 +40,8 @@ void setup() {
   Serial.println();
   Serial.print("connected: ");
   Serial.println(WiFi.localIP());
+  test = true;
+  
   //connect to Firebase database
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
 }
@@ -73,9 +81,8 @@ void array_to_string(byte array[], unsigned int len, char buffer[]) {
 
 //method mengirim data UID ke firebase
 void kirim(){
-  readsuccess = getid();
-    readsuccess;
-  
+  getid();
+ 
   Firebase.setString("RFID", StrUID); // send to Firebase
   if (Firebase.failed()) { //if error/failed 
     Serial.print("kirim ke firebase failed:"); // print to serial 
@@ -84,11 +91,44 @@ void kirim(){
   }
   delay(100);
 }
+//method ambil data json firebase
+void terima() {
+  getid();
+
+  timeClient.update();
+  int day = timeClient.getDay();
+  //Serial.println(day);
+  String myString = String(day);
+  //Serial.println(myString);
+  
+  FirebaseObject object = Firebase.get("/RFIDMhs/" + StrUID );
+  String Kode = object.getString("/NPM/");
+
+  if (Kode != NULL){
+    Serial.print("NPM : ");
+    Serial.println(Kode);
+    FirebaseObject object = Firebase.get("/Jadwal/" + Kode + "/" + myString );
+    String pertemuan = object.getString();
+    Serial.println(pertemuan);
+    if (pertemuan != NULL){
+      if (test == true ){
+      String Hadir = "H";
+      Firebase.setString("/PresensiMhs/" + Kode + "/Matakuliah/" + pertemuan + "/Pertemuan/" + myString + "/StatusPresensi/", Hadir );
+      test = false;
+      }
+    } else {
+      Serial.println("Jadwal Tidak ada");
+    }
+  } else {
+    Serial.println("Data tidak ada");
+    test = true;
+  }
+  
+}
 
 //method loop
 void loop() {
-    
     delay(100);
-
-    kirim();
+    terima();
+    //kirim();
 }
